@@ -1,0 +1,8 @@
+azure_client_id                = ""
+azure_client_secret            = ""
+azure_tenant_id                = ""
+azure_subscription_id          = ""
+azure_infrastructure_subnet_id = ""
+
+docuseal_secret_key                   = ""
+docuseal_postgresql_connection_string = "postgres://<username>:<password>@<host>:<port>/docuseal"
