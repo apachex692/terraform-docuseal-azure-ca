@@ -1,6 +1,7 @@
 resource "azurerm_resource_group" "this" {
   name     = "attack-docuseal"
   location = "UK South"
+  tags     = var.azure_tags
 }
 
 resource "azurerm_log_analytics_workspace" "this" {
@@ -9,6 +10,7 @@ resource "azurerm_log_analytics_workspace" "this" {
   resource_group_name = azurerm_resource_group.this.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+  tags                = var.azure_tags
 }
 
 resource "azurerm_container_app_environment" "this" {
@@ -19,6 +21,7 @@ resource "azurerm_container_app_environment" "this" {
 
   logs_destination         = "log-analytics"
   infrastructure_subnet_id = var.azure_infrastructure_subnet_id # Production VNet
+  tags                     = var.azure_tags
 
   workload_profile {
     name                  = "Consumption"
@@ -33,6 +36,7 @@ resource "azurerm_container_app" "this" {
   container_app_environment_id = azurerm_container_app_environment.this.id
   resource_group_name          = azurerm_resource_group.this.name
   revision_mode                = "Single"
+  tags                         = var.azure_tags
 
   template {
     max_replicas = var.azure_ca_max_replicas
@@ -54,10 +58,61 @@ resource "azurerm_container_app" "this" {
         secret_name = "database-url"
       }
 
+      env {
+        name        = "SMTP_USERNAME"
+        secret_name = "smtp-username"
+      }
+
+      env {
+        name  = "SMTP_ADDRESS"
+        value = var.docuseal_smtp_address
+      }
+
+      env {
+        name  = "SMTP_PORT"
+        value = var.docuseal_smtp_port
+      }
+
+      env {
+        name  = "SMTP_DOMAIN"
+        value = var.docuseal_smtp_domain
+      }
+
+      env {
+        name        = "SMTP_PASSWORD"
+        secret_name = "smtp-password"
+      }
+
+      env {
+        name  = "SMTP_AUTHENTICATION"
+        value = var.docuseal_smtp_authentication
+      }
+
+      env {
+        name  = "SMTP_FROM"
+        value = var.docuseal_smtp_from
+      }
+
+      env {
+        name  = "AZURE_STORAGE_ACCOUNT_NAME"
+        value = var.docuseal_azure_storage_account_name
+      }
+
+      env {
+        name  = "AZURE_CONTAINER"
+        value = var.docuseal_azure_container
+      }
+
+      env {
+        name        = "AZURE_STORAGE_ACCESS_KEY"
+        secret_name = "azure-storage-access-key"
+      }
+
       liveness_probe {
-        transport = "HTTP"
-        port      = 3000
-        path      = "/"
+        transport        = "HTTP"
+        port             = 3000
+        path             = "/"
+        interval_seconds = 60
       }
 
       readiness_probe {
@@ -73,16 +128,6 @@ resource "azurerm_container_app" "this" {
     }
   }
 
-  secret {
-    name  = "secret-key-base"
-    value = var.docuseal_secret_key_base
-  }
-
-  secret {
-    name  = "database-url"
-    value = var.docuseal_postgresql_connection_string
-  }
-
   ingress {
     allow_insecure_connections = false
     external_enabled           = true
@@ -94,5 +139,30 @@ resource "azurerm_container_app" "this" {
       percentage      = 100
       latest_revision = true
     }
+  }
+
+  secret {
+    name  = "secret-key-base"
+    value = var.docuseal_secret_key_base
+  }
+
+  secret {
+    name  = "database-url"
+    value = var.docuseal_postgresql_connection_string
+  }
+
+  secret {
+    name  = "smtp-username"
+    value = var.docuseal_smtp_username
+  }
+
+  secret {
+    name  = "smtp-password"
+    value = var.docuseal_smtp_password
+  }
+
+  secret {
+    name  = "azure-storage-access-key"
+    value = azurerm_storage_account.this.primary_access_key
   }
 }
